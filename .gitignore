@@ -1,26 +1,27 @@
-# ignore .ipynb files
-*.ipynb
+# Ignore CSV and TXT files
+##########################
+*.csv
+*.txt
 
-#ignore 
-./.ipynb_checkpoints
-
-# Python byte-code stuff
+# Ignore Python byte code
+#########################
 __pycache__/
 *.py[cod]
 
-# ignore idea, dask config files
-.idea/
-.dask/
-
-# ignore dummy data files
-data/
-
-# ignore log, temp output files
-*.log
-*.out
-
-# ignore stuff from VS Code
-.vscode/
-
-# ignore .DS_Store
+# Ignore system files and directories
+#####################################
+.vscode
 .DS_Store
+
+# Ignore FASTQ and template files
+#################################
+*.fastq*
+*.fq*
+
+# Ignore build directories
+##########################
+bin/
+build/
+lib/
+*.egg-info/
+dist/
