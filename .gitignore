@@ -18,6 +18,10 @@ __pycache__/
 *.fastq*
 *.fq*
 
+# Ignore output files
+#####################
+*.log
+
 # Ignore build directories
 ##########################
 bin/
