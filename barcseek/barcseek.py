@@ -9,7 +9,7 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 #   Load standard modules
 import os
-# import time
+import time
 import logging
 import warnings
 
@@ -89,11 +89,15 @@ def main() -> None:
     console = logging.StreamHandler() # type: logging.StreamHandler
     console.setFormatter(colored_formater)
     logging.getLogger().addHandler(console)
+    #   Begin the program
+    logging.info("Welcome to %s!", os.path.basename(sys.argv[0]))
+    program_start = time.time() # type: float
     #   Read in the barcodes
     barcodes_dict = barcodes.read_barcodes(barcodes_file=args['barcodes']) # type: Dict[str, str]
-    multiple_barcodes = barcodes.barcode_check(barcode_dict=barcodes_dict) # type: Dict[str, int]
-    if multiple_barcodes:
+    if barcodes.barcode_check(barcode_dict=barcodes_dict):
         raise ValueError(logging.error("Cannot have ambiguous or duplicate barcodes"))
+    #   End the program
+    logging.debug("Entire program took %s seconds to run", round(time.time() - program_start, 3))
     devnull.close()
     try:
         logfile.close()
