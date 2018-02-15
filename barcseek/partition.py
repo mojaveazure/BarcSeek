@@ -3,8 +3,8 @@
 """Paritioning functions"""
 
 import sys
-if sys.version_info.major is not 3 and sys.version_info.minor < 5:
-    sys.exit("Please use Python 3.5 or higher for this program")
+if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
+    sys.exit("Please use Python 3.5 or higher")
 
 
 import os
@@ -12,10 +12,12 @@ import itertools
 from copy import deepcopy
 from typing import Optional, Union, Tuple, List, Dict
 
-try:
-    import fastq
-except ImportError:
-    sys.exit("Please leave this module in its directory to load the fastq module")
+import barcseek.fastq as fastq
+
+# try:
+#     import fastq
+# except ImportError:
+#     sys.exit("Please leave this module in its directory to load the fastq module")
 
 try:
     import regex
@@ -39,7 +41,7 @@ IUPAC_CODES = { # type: Dict[str, str]
 def fix_iupac(barcode: str) -> str:
     """Remove IUPAC codes from the barcode sequence, 'N's will remain
     barcode [str]   The barcode sequence to remove IUPAC codes from
-                        These codes will be replaced with regex-style options
+                    These codes will be replaced with regex-style options
     """
     new_barcode = barcode # type: str
     for code, sub in IUPAC_CODES.items(): # type: str, str
@@ -78,7 +80,7 @@ def match_barcode(read: fastq.Read, barcodes: Union[Tuple[str], List[str]], erro
     barcodes [Collection[str, Optional[str]]]:  A tuple or list of one or two barcode sequences
     error_rate [int]=None                       The error rate
     """
-    barcodes = filter(None, barcodes) # type: filter
+    barcodes = filter(None, barcodes) # type: Iterable[str]
     regexes = tuple(map(lambda tup: barcode_to_regex(*tup), zip(barcodes, itertools.repeat(error_rate)))) # type: Tuple
     matches = list() # type: List
     if len(regexes) == 1:
@@ -114,8 +116,8 @@ def partition(
 ) -> List[Tuple[str, Optional[str]]]:
     """Partition a FASTQ file into component barcodes
     barcodes [Dict[str, List[str]]]:    A dictionary where the key is the sample ID and
-                                            the value is a list or tuple of one or two
-                                            barcode sequences
+                                        the value is a list or tuple of one or two
+                                        barcode sequences
     filename [str]                      Forward or single FASTQ filename
     reverse [str]=None                  Optional reverse FASTQ filename
     error_rate [int]=None               The error rate
