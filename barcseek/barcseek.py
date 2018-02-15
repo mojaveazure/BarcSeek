@@ -10,13 +10,18 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 #   Load standard modules
 import os
 import time
+import signal
 import logging
 import warnings
+from multiprocessing import Lock
+from multiprocessing.pool import Pool
 
 #   Load custom modules
 import barcseek.barcodes as barcodes
 import barcseek.utilities as utilities
 import barcseek.arguments as arguments
+
+LOCK = Lock()
 
 def _set_verbosity(level): # type: (str) -> int
     level = level.upper()
@@ -45,18 +50,13 @@ def main() -> None:
     parser = arguments.set_args() # type: argparse.ArgumentParser
     if not sys.argv[1:]:
         sys.exit(parser.print_help())
-    args = {key: value for key, value in vars(parser.parse_args()).items() if value is not None} # type: Dict[str, Any]
-    # #   Make an output directory
+    args = vars(parser.parse_args()) # type: Dict[str, Any]
+    #   Make an output directory
     # if os.path.exists(args['outdirectory']):
     #     args['outdirectory'] = args['outdirectory'] + time.strftime('_%Y-%m-%d_%H:%M')
-    # try:
-    #     os.makedirs(args['outdirectory'])
-    # except OSError:
-    #     pass
-    # finally:
-    #     #   Make a prefix for project-level output files
-    #     output_prefix = os.path.join(args['outdirectory'], args['project']) # type: str
-    output_prefix = os.path.join(os.getcwd(), 'BarcSeek') # type: str
+    os.makedirs(args['outdirectory'], exist_ok=True)
+    #   Make a prefix for project-level output files
+    output_prefix = os.path.join(args['outdirectory'], sys.argv[0]) # type: str
     #   Setup the logger
     #   Formatting values
     log_format = '%(asctime)s %(levelname)s:\t%(message)s' # type: str
@@ -98,8 +98,41 @@ def main() -> None:
         raise ValueError(logging.error("Cannot have ambiguous or duplicate barcodes"))
     #   Read in the sample sheet and match barcode sequences to each sample
     sample_sheet = utilities.load_sample_sheet(sheet_file=args['sample_sheet']) # type: Dict[str, Tuple[str, Optional[str]]]
-    sample_barcodes = {sample: tuple(map(lambda bc: barcodes_dict[bc], barcodes_list)) for sample, barcodes_list in sample_sheet.items()} # type: Dict[str, Tuple[str, Optional[str]]]
+    sample_barcodes = utilities.match_barcodes(sample_sheet=sample_sheet, barcodes_dictionary=barcodes_dict) # type: Dict[str, Tuple[str, Optional[str]]]
     print(sample_barcodes)
+    raise SystemExit
+    #   Create the multiprocessing pool
+    #   Tell the pool to ignore SIGINT (^C)
+    #   by turning INTERUPT signals into IGNORED signals
+    sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN) # type: function
+    #   Setup our multiprocessing pool
+    #   Allow the user to specify the number of jobs to run at once
+    #   If not specified, let multiprocessing figure it out
+    if args['num_cores']:
+        pool = Pool(processes=args['num_cores'])
+    else:
+        pool = Pool()
+    #   Re-enable the capturing of SIGINT, catch with KeyboardInterrupt
+    #   or ExitPool, depending on how the exit was initiated
+    #   Note: SystemExits are swallowed by Pool, no way to change that
+    signal.signal(signal.SIGINT, sigint_handler)
+    if getattr(pool, '_processes') > 1:
+        try:
+            #   Use map_async and get with a large timeout
+            #   to allow for KeyboardInterrupts to be caught
+            #   and handled with the try/except
+            pass
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.join()
+            raise SystemExit('\nkilled')
+        else:
+            pool.join()
+    #   Otherwise, don't bother with pool.map() make life easy
+    else:
+        #   Clean up the pool
+        pool.close(); pool.terminate(); pool.join()
+        #   Use standard map
     #   End the program
     logging.debug("Entire program took %s seconds to run", round(time.time() - program_start, 3))
     devnull.close()

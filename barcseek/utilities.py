@@ -130,3 +130,19 @@ def load_sample_sheet(sheet_file: str) -> Dict[str, Tuple[str, Optional[str]]]:
             sample_sheet[line[0]] = tuple(line[1:])
     logging.debug("Reading in the sample sheet took %s seconds", round(time.time() - sheet_start, 3))
     return sample_sheet
+
+
+def match_barcodes(sample_sheet: Dict[str, Tuple[str, Optional[str]]], barcodes_dictionary: Dict[str, str]) -> Dict[str, Tuple[str, Optional[str]]]:
+    """Create full barcode sequences for each sample in the sample sheet"""
+    logging.info("Matching barcodes for %s samples", len(sample_sheet))
+    match_start = time.time() # type: float
+    bc_lookup = lambda i: barcodes_dictionary.get(i, i) # type: function
+    sample_barcodes = dict() # type: Dict[str, Tuple[str, Optional[str]]]
+    for sample, barcodes_list in sample_sheet.items(): # type: str, Tuple[str, Optional[str]]
+        if len(barcodes_list) > 2:
+            raise SystemExit(logging.error("Each sample can have at most two barcodes sets associated with it, sample %s has %s", sample, len(barcodes_list)))
+        barcodes_list = map(lambda i: i.split(','), barcodes_list) # type: Iterable[List[str], List[str]]
+        barcodes_filled = tuple(','.join(map(bc_lookup, barcodes)) for barcodes in barcodes_list) # type: Tuple[str]
+        sample_barcodes[sample] = barcodes_filled
+    logging.debug("Matching barcodes took %s seconds", round(time.time() - match_start, 3))
+    return sample_barcodes
