@@ -9,8 +9,9 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 import os
 import gzip
+import time
 import logging
-from typing import Iterable, Tuple, Any
+from typing import Iterable, Tuple, Dict, Any, Optional
 
 from barcseek import fastq
 
@@ -83,8 +84,8 @@ def unpack(collection: Iterable[Any]) -> Tuple[Any]:
 
 def load_fastq(fastq_file: str) -> Tuple[fastq.Read]:
     """Load a FASTQ file"""
-    # logging.info("Reading in FASTQ file '%s'...", fastq_file)
-    # read_start = time.time() # type: float
+    logging.info("Reading in FASTQ file '%s'...", fastq_file)
+    read_start = time.time() # type: float
     reads = [] # type: List[Read]
     if os.path.splitext(fastq_file)[-1] == '.gz':
         my_open = gzip.open # type: function
@@ -95,5 +96,20 @@ def load_fastq(fastq_file: str) -> Tuple[fastq.Read]:
             name, seq, qual = read # type: str, str, str
             # reads.append(Read(name=name, seq=seq, qual=qual))
             reads.append(fastq.Read(read_id=name, seq=seq, qual=qual))
-    # logging.debug("Reading in FASTQ file '%s' took %s seconds", fastq_file, round(time.time() - read_start, 3))
+    logging.debug("Reading in FASTQ file '%s' took %s seconds", fastq_file, round(time.time() - read_start, 3))
     return tuple(reads)
+
+
+def load_sample_sheet(sheet_file: str) -> Dict[str, Tuple[str, Optional[str]]]:
+    """Load in the sample sheet"""
+    logging.info("Reading in sample sheet %s", sheet_file)
+    sheet_start = time.time() # type: float
+    sample_sheet = dict()
+    with open(sheet_file, 'r') as sfile:
+        for line in sfile:
+            if line.startswith('#'):
+                continue
+            line = line.strip().split()
+            sample_sheet[line[0]] = tuple(line[1:])
+    logging.debug("Reading in the sample sheet took %s seconds", round(time.time() - sheet_start, 3))
+    return sample_sheet

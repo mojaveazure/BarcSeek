@@ -96,6 +96,10 @@ def main() -> None:
     barcodes_dict = barcodes.read_barcodes(barcodes_file=args['barcodes']) # type: Dict[str, str]
     if barcodes.barcode_check(barcode_dict=barcodes_dict):
         raise ValueError(logging.error("Cannot have ambiguous or duplicate barcodes"))
+    #   Read in the sample sheet and match barcode sequences to each sample
+    sample_sheet = utilities.load_sample_sheet(sheet_file=args['sample_sheet']) # type: Dict[str, Tuple[str, Optional[str]]]
+    sample_barcodes = {sample: tuple(map(lambda bc: barcodes_dict[bc], barcodes_list)) for sample, barcodes_list in sample_sheet.items()} # type: Dict[str, Tuple[str, Optional[str]]]
+    print(sample_barcodes)
     #   End the program
     logging.debug("Entire program took %s seconds to run", round(time.time() - program_start, 3))
     devnull.close()

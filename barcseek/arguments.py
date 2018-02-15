@@ -105,7 +105,7 @@ def set_args() -> argparse.ArgumentParser:
     inputs.add_argument( # Sample sheet
         '-s',
         '--sample-sheet',
-        dest='sample',
+        dest='sample_sheet',
         type=str,
         default=None,
         metavar='SAMPLE SHEET',
