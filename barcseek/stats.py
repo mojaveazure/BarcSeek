@@ -3,13 +3,15 @@
 """Some stats for BarcSeek"""
 
 import sys
-if sys.version_info.major is not 3 and sys.version_info.minor < 5:
+if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
     sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
+#   Load standard modules
 import os
 from typing import Optional, List
 
+#   Load installed modules
 try:
     import numpy as np
     import matplotlib.pyplot as plt
@@ -20,10 +22,10 @@ except ImportError as error:
 def stats_barc(output_files: List[str], output_directory: Optional[str]=None) -> None:
     """
     This function generates basic stats on demultiplexed datasets.
-    Currently, it takes all output files as argument in the form of a list, 
+    Currently, it takes all output files as argument in the form of a list,
     counts the number of fastq lines per file and
-    outputs a pdf file with a barplot of reads/demultiplexed dataset. The output directory 
-    for this pdf file is an optional argument with default set to the directory containing 
+    outputs a pdf file with a barplot of reads/demultiplexed dataset. The output directory
+    for this pdf file is an optional argument with default set to the directory containing
     the fastq files.
     """
     if not output_directory:

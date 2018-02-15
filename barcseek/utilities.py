@@ -7,14 +7,17 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
     sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
+#   Load standard modules
 import os
 import gzip
 import time
 import logging
 from typing import Iterable, Tuple, Dict, Any, Optional
 
-from barcseek import fastq
+#   Load custom modules
+import barcseek.fastq as fastq
 
+#   Load installed modules
 try:
     from Bio.SeqIO.QualityIO import FastqGeneralIterator
 except ImportError as error:
@@ -82,11 +85,11 @@ def unpack(collection: Iterable[Any]) -> Tuple[Any]:
     return tuple(result)
 
 
-def load_fastq(fastq_file: str) -> Tuple[fastq.Read]:
+def load_fastq(fastq_file: str, pair: Optional[str]=None) -> Tuple[fastq.Read]:
     """Load a FASTQ file"""
-    logging.info("Reading in FASTQ file '%s'...", fastq_file)
+    logging.info("Reading in FASTQ file %s", fastq_file)
     read_start = time.time() # type: float
-    reads = [] # type: List[Read]
+    reads = {} # type: Dict[str, fastq.Read]
     if os.path.splitext(fastq_file)[-1] == '.gz':
         my_open = gzip.open # type: function
     else:
@@ -94,10 +97,24 @@ def load_fastq(fastq_file: str) -> Tuple[fastq.Read]:
     with my_open(fastq_file, 'rt') as ffile:
         for read in FastqGeneralIterator(ffile): # type: Tuple[str, str, str]
             name, seq, qual = read # type: str, str, str
-            # reads.append(Read(name=name, seq=seq, qual=qual))
-            reads.append(fastq.Read(read_id=name, seq=seq, qual=qual))
-    logging.debug("Reading in FASTQ file '%s' took %s seconds", fastq_file, round(time.time() - read_start, 3))
-    return tuple(reads)
+            reads[name] = fastq.Read(read_id=name, seq=seq, qual=qual)
+    logging.debug("Reading in FASTQ file %s took %s seconds", fastq_file, round(time.time() - read_start, 3))
+    if pair:
+        logging.info("Reading in reverse FASTQ file %s", pair)
+        reverse_start = time.time() # type: float
+        if os.path.splitext(pair)[-1] == '.gz':
+            my_open = gzip.open # type: function
+        else:
+            my_open = open # type: function
+        with my_open(pair, 'rt') as rfile:
+            for rread in FastqGeneralIterator(rfile): # type: Tuple[str, str, str]
+                rname, rseq, rqual = rread # type: str, str, str
+                try:
+                    reads[rname].add_reverse(seq=rseq, qual=rqual)
+                except KeyError:
+                    logging.error("Reverse read %s doesn't match any reads in the forward FASTQ file", rname)
+        logging.debug("Reading in reverse FASTQ file took %s seconds", round(time.time() - reverse_start, 3))
+    return tuple(reads.values())
 
 
 def load_sample_sheet(sheet_file: str) -> Dict[str, Tuple[str, Optional[str]]]:

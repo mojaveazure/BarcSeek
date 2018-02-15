@@ -7,18 +7,17 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
     sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
-#   Import standard modules
-# import json
+#   Load standard modules
 import time
 import logging
 from typing import Dict, Tuple
 from collections import Counter
 
-#   Import custom modules
+#   Load custom modules
 import barcseek.utilities as utilities
 from barcseek.partition import IUPAC_CODES
 
-#   Import installed modules
+#   Load installed modules
 try:
     import regex
 except ImportError as error:

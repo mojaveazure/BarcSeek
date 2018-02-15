@@ -7,18 +7,16 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
     sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
+#   Load standard modules
 import os
 import itertools
 from copy import deepcopy
 from typing import Optional, Union, Tuple, List, Dict
 
+#   Load custom modules
 import barcseek.fastq as fastq
 
-# try:
-#     import fastq
-# except ImportError:
-#     sys.exit("Please leave this module in its directory to load the fastq module")
-
+#   Load installed modules
 try:
     import regex
 except ImportError as error:
