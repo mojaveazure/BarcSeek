@@ -4,7 +4,7 @@
 
 import sys
 if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
-    sys.exit("Please use Python 3.5 or higher")
+    sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
 import argparse
