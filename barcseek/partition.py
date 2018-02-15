@@ -15,6 +15,7 @@ from typing import Optional, Union, Tuple, List, Dict
 
 #   Load custom modules
 import barcseek.fastq as fastq
+import barcseek.utilities as utilities
 
 #   Load installed modules
 try:
@@ -121,7 +122,8 @@ def partition(
     error_rate [int]=None               The error rate
     """
     try:
-        reads = fastq.read_fastq(fastq=filename, pair=reverse) # type: Tuple[fastq.Read]
+        # reads = fastq.read_fastq(fastq=filename, pair=reverse) # type: Tuple[fastq.Read]
+        reads = utilities.load_fastq(fastq_file=filename, pair=reverse) # type: Tuple[utilities.Read]
     except FileNotFoundError as error:
         sys.exit("Cannot find " + error.filename)
     output_directory = os.path.dirname(filename) # type: str

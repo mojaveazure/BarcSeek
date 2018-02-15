@@ -8,14 +8,7 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 
 #   Load standard modules
-from typing import Optional, Tuple, Any
-
-#   Load installed modules
-try:
-    from Bio.SeqIO import QualityIO
-except ImportError as error:
-    sys.exit("Please install " + error.name)
-
+from typing import Optional, Any
 
 class Read(object):
 
@@ -128,20 +121,3 @@ class Read(object):
     paired = property(fget=_is_paired, doc='Is this read paired?')
     fastq = property(fget=_fastq, doc='Read in FASTQ format')
     reverse_fastq = property(fget=_rev_fastq, doc='Reverse read in FASTQ format')
-
-
-def read_fastq(fastq: str, pair: Optional[str]=None) -> Tuple[Read]:
-    """Read in a FASTQ file, and optionally its pair
-    'fastq' the filename for the forward or only FASTQ file
-    'pair' an optional filename for the reverse FASTQ file"""
-    reads = dict() # type: Dict[str, Read]
-    with open(fastq, 'r') as ffile: # type: _io.TextIOWrapper
-        for read in QualityIO.FastqGeneralIterator(ffile): # type: Tuple[str]
-            read_id, seq, qual = read # type: str, str, str
-            reads[read_id] = Read(read_id=read_id, seq=seq, qual=qual)
-    if pair:
-        with open(pair, 'r') as rfile: # type: _io.TextIOWrapper
-            for read in QualityIO.FastqGeneralIterator(rfile): # type: Tuple[str]
-                read_id, seq, qual = read # type: str, str, str
-                reads[read_id].add_reverse(seq=seq, qual=qual)
-    return tuple(reads.values())
