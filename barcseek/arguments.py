@@ -9,22 +9,19 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 #   Load standard modules
 import argparse
-import textwrap
 import multiprocessing
 
 _HELP_WRAP = 60 # type: int
 _ERROR_DEFAULT = 1 # type: int
+_OUTDIR_DEFAULT = 'output' # type: str
 _VERBOSITY_DEFAULT = 'info' # type: str
-_VERBOSITY_LEVELS = (
+_VERBOSITY_LEVELS = ( # type: Tuple[str]
     'debug',
     'info',
     'warning',
     'error',
     'critical'
 )
-
-def _help_text(text: str, wrap: int=45) -> str:
-    return '\n'.join(textwrap.wrap(text, wrap))
 
 def _num_cores(value: str) -> int:
     try:
@@ -53,8 +50,8 @@ def set_args() -> argparse.ArgumentParser:
      /_)^ --,r'
     |b      |b
      ''',
-        formatter_class=argparse.RawTextHelpFormatter,
-        add_help=True
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        add_help=False
     )
     #   Arguments for verbosity and logging
     parser.add_argument( # Verbosity
@@ -66,18 +63,28 @@ def set_args() -> argparse.ArgumentParser:
         default=_VERBOSITY_DEFAULT,
         required=False,
         metavar='verbosity',
-        help=_help_text(text="Set the verbosity level, choose from '%s'; defaults to '%s'" % ("', '".join(_VERBOSITY_LEVELS), _VERBOSITY_DEFAULT))
+        help="Set the verbosity level, choose from '%s'; defaults to '%s'" % ("', '".join(_VERBOSITY_LEVELS), _VERBOSITY_DEFAULT)
     )
-    parser.add_argument( # Log file
-        '-l',
-        '--logfile',
-        dest='logfile',
-        type=str,
-        default=None,
+    parser.add_argument( # Number of cores
+        '--parallel',
+        dest='num_cores',
+        type=_num_cores,
+        const=None,
+        default=1,
+        nargs='?',
         required=False,
-        metavar='log file',
-        # help=_help_text(text="Specify a file for the log messages, defaults to stderr")
-        help=argparse.SUPPRESS
+        metavar='num jobs',
+        help="Run %(prog)s in parallel; if passed, can optionally specify the number of jobs to run at once"
+    )
+    parser.add_argument( # Output directory
+        '-o',
+        '--output-directory',
+        dest='outdirectory',
+        type=str,
+        default=_OUTDIR_DEFAULT,
+        required=False,
+        metavar='output directory',
+        help="Choose where all output files are to be stored; defaults to '%s'" % _OUTDIR_DEFAULT
     )
     #   Input arguments
     inputs = parser.add_argument_group(
@@ -90,9 +97,9 @@ def set_args() -> argparse.ArgumentParser:
         dest='forward',
         type=str,
         default=None,
+        required=True,
         metavar='FORWARD FASTQ',
-        help=_help_text(text="Provide a filepath for the forward FASTQ file"),
-        required=True
+        help="Provide a filepath for the forward/single FASTQ file"
     )
     inputs.add_argument( # Reverse FASTQ
         '-r',
@@ -100,8 +107,9 @@ def set_args() -> argparse.ArgumentParser:
         dest='reverse',
         type=str,
         default=None,
+        required=False,
         metavar='REVERSE FASTQ',
-        help=_help_text(text="Provide a filepath for the reverse FASTQ file")
+        help="Provide a filepath for the optional reverse FASTQ file"
     )
     inputs.add_argument( # Sample sheet
         '-s',
@@ -109,19 +117,19 @@ def set_args() -> argparse.ArgumentParser:
         dest='sample_sheet',
         type=str,
         default=None,
+        required=True,
         metavar='SAMPLE SHEET',
-        help=_help_text(text="Provide a filepath for the sample sheet"),
-        required=True
+        help="Provide a filepath for the sample sheet"
     )
     inputs.add_argument( # Barcodes file
         '-b',
         '--barcodes',
         dest='barcodes',
         type=str,
+        required=True,
         default=None,
         metavar='BARCODES',
-        help=_help_text(text="Provide a filepath for the barcodes CSV file"),
-        required=True
+        help="Provide a filepath for the barcodes CSV file"
     )
     barcodes = parser.add_argument_group(
         title='barcode options',
@@ -133,16 +141,8 @@ def set_args() -> argparse.ArgumentParser:
         dest='error',
         type=int,
         default=_ERROR_DEFAULT,
+        required=False,
         metavar='ERROR',
-        help=_help_text(text="This is how many mismatches in the barcode we allowed before rejecting, defaults to %s" % _ERROR_DEFAULT)
+        help="This is how many mismatches in the barcode we allowed before rejecting, defaults to %s" % _ERROR_DEFAULT
     )
-    # parser.add_argument( # Numlines?
-    #     '-l',
-    #     '--numlines',
-    #     dest='numlines',
-    #     type=int,
-    #     default=40000,
-    #     metavar='NUMLINES',
-    #     help='We internally split your input file(s) into \nmany smaller files, after -l lines.\n[OPTIONAL, DEFAULT=40000]'
-    # )
     return parser
