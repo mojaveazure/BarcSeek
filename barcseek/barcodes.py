@@ -11,7 +11,6 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 # import json
 import time
 import logging
-import itertools
 from typing import Dict, Tuple
 from collections import Counter
 
@@ -57,15 +56,18 @@ def read_barcodes(barcodes_file: str) -> Dict[str, str]:
     return barcodes_dict
 
 
-def barcode_check(barcode_dict: Dict[str, str]) -> Dict[str, int]:
+def barcode_check(barcode_dict: Dict[str, str]) -> bool:
     """Checks whether or not there are barcodes in use that are ambiguous and could thus recognize the same sequence.
     For example the barcodes 'AY' and 'AW' both recognize 'AT'.
     Does not check for ambiguity with regards to UMIs, i.e. strings of 'N'. So 'ACGN' and 'ACGT' are recognized as different
     even though they can both match 'ACGT'."""
-    barcodes = itertools.chain.from_iterable(barcode_dict.values()) # type: Iterable[str]
+    logging.info("Checking for ambiguous and duplicate barcodes")
+    check_start = time.time() # type: float
+    barcodes = utilities.unpack(collection=barcode_dict.values()) # type: Iterable[str]
     expanded_barcodes = utilities.unpack(expand_iupac(bc) for bc in barcodes) # type: Tuple[str]
     multiplicate_barcodes = dict(filter(lambda item: item[1] > 1 , Counter(expanded_barcodes).items())) # type: Dict[str, int]
-    return multiplicate_barcodes
+    logging.debug("Checking barcode validity took %s seconds", round(time.time() - check_start, 3))
+    return bool(multiplicate_barcodes)
 
 
 # def extract_barcodes(sample_sheet, barcode_csv):
