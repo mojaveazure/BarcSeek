@@ -9,7 +9,7 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 import os
 import gzip
-# from collections import namedtuple
+import logging
 from typing import Iterable, Tuple, Any
 
 from barcseek import fastq
@@ -20,7 +20,55 @@ except ImportError as error:
     sys.exit("Please install " + error.name)
 
 
-# Read = namedtuple('Read', ('name', 'seq', 'qual'))
+class StrippedFormatter(logging.Formatter):
+    """A formatter where all ANSI formatting is removed"""
+
+    def __init__(self, *args, **kwargs):
+        logging.Formatter.__init__(self, *args, **kwargs)
+
+    def format(self, record): # type: (logging.LogRecord) -> str
+        """Strip ANSI formatting from log messages"""
+        message = logging.Formatter.format(self, record) # type: str
+        while True:
+            #   In Python, '\x1b' == '\033', so both codes for ANSI formatting are covered
+            start = message.find('\x1b') # type: int
+            #   If no ASI formatting is found break
+            if start == -1:
+                break
+            #   Find the first 'm' after the ANSI code start
+            #   and remove everything between and including
+            #   the ANSI code start and the 'm'
+            m_pos = message.find('m', start) # type: int
+            message = message[:start] + message[m_pos + 1:]
+        return message
+
+
+class ColoredFormatter(logging.Formatter):
+    """A colorized formatter for logging"""
+
+    _colors = { # type: Dict[int, str]
+        50: '\x1b[1m\x1b[31m', # CRITICAL: bold red
+        40: '\x1b[31m', # ERROR: red
+        30: '\x1b[33m', # WARNING: yellow
+        20: '\x1b[32m', # INFO: green
+        10: '\x1b[36m' # DEBUG: cyan
+    }
+
+    _default = '\x1b[0m' # Anything else: reset
+
+    def __init__(self, *args, **kwargs):
+        logging.Formatter.__init__(self, *args, **kwargs)
+
+    def format(self, record): # type: (logging.LogRecord) -> str
+        """Colorize log messages"""
+        message = logging.Formatter.format(self, record) # type: str
+        if sys.platform not in ('win32', 'cygwin'):
+            color_level = min(self._colors.keys(), key=lambda level: abs(level - record.levelno)) # type: int
+            color_level = min((color_level, record.levelno)) # type: int
+            color = self._colors.get(color_level, self._default) # type: str
+            message = color + message + self._default # type: str
+        return message
+
 
 def unpack(collection: Iterable[Any]) -> Tuple[Any]:
     """Unpack a series of nested lists, sets, or tuples"""

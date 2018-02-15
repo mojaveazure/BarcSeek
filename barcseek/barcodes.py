@@ -9,6 +9,8 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 #   Import standard modules
 # import json
+import time
+import logging
 import itertools
 from typing import Dict, Tuple
 from collections import Counter
@@ -29,25 +31,29 @@ def expand_iupac(barcode: str) -> Tuple[str]:
     barcode = barcode.upper()
     if all((i in 'ACGTN' for i in set(barcode))):
         return (barcode.replace('N', ''),)
-        # return (barcode.replace('N', '[ACGT]'),)
-    else:
-        pos = regex.search(r'[%s]' % ''.join(IUPAC_CODES.keys()), barcode).start()
-        code = barcode[pos]
-        return utilities.unpack(collection=(expand_iupac(barcode.replace(code, i, 1)) for i in IUPAC_CODES[code]))
+    pos = regex.search(r'[%s]' % ''.join(IUPAC_CODES.keys()), barcode).start()
+    code = barcode[pos]
+    return utilities.unpack(collection=(expand_iupac(barcode.replace(code, i, 1)) for i in IUPAC_CODES[code]))
 
 
 def read_barcodes(barcodes_file: str) -> Dict[str, str]:
     """Read the barcodes CSV"""
+    logging.info("Reading in barcodes file %s", barcodes_file)
+    read_start = time.time() # type: float
     barcodes_dict = dict()
-    with open(barcodes_file, 'r') as bfile:
-        for line in bfile: # type: str
-            if line.startswith('#'):
-                continue
-            line = line.strip().split(',')
-            if len(line) == 2:
-                barcodes_dict[line[0]] = line[1]
+    try:
+        with open(barcodes_file, 'r') as bfile:
+            for line in bfile: # type: str
+                if line.startswith('#'):
+                    continue
+                line = line.strip().split(',')
+                if len(line) == 2:
+                    barcodes_dict[line[0]] = line[1]
+    except FileNotFoundError:
+        raise SystemExit(logging.critical("Cannot find barcodes file %s", barcodes_file))
     if not barcodes_dict:
-        raise ValueError("No barcodes found in the barcodes file")
+        raise ValueError(logging.error("No barcodes found in the barcodes file"))
+    logging.debug("Reading in barcodes took %s seconds", round(time.time() - read_start, 3))
     return barcodes_dict
 
 

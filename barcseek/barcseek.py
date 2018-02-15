@@ -8,38 +8,36 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
 
 
 #   Load standard modules
-# import csv
-# import json
-# import itertools
-# from collections import Counter, defaultdict
-# from typing import Iterable, Tuple, Any
+import os
+# import time
+import logging
+import warnings
 
+#   Load custom modules
 import barcseek.barcodes as barcodes
+import barcseek.utilities as utilities
 import barcseek.arguments as arguments
 
-# try:
-#     # from parallel import parallelize
-#     from partition import IUPAC_CODES
-# except ImportError:
-#     sys.exit("Please leave this program in its directory to load custom modules")
+def _set_verbosity(level): # type: (str) -> int
+    level = level.upper()
+    if level == 'DEBUG':
+        log_level = logging.DEBUG # type: int
+    elif level == 'INFO':
+        log_level = logging.INFO # type: int
+    elif level == 'WARNING':
+        log_level = logging.WARNING # type: int
+    elif level == 'ERROR':
+        log_level = logging.ERROR # type: int
+    elif level == 'CRITICAL':
+        log_level = logging.CRITICAL # type: int
+    else:
+        raise ValueError("'level' must be one of 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL'")
+    return log_level
 
-# def extract_barcodes(sample_sheet, barcode_csv):
-#     """Returns a dictionary, Keys are the sample_names, values are the barcodes."""
-#     with open(sample_sheet) as ss_reader, open(barcode_csv) as barcode_reader:
-#         ss_file = itertools.islice(csv.reader(ss_reader, delimiter='\t'),1,None)
-#         barcode_file = csv.reader(barcode_reader, delimiter=',')
-#         csv_dict = {int(line[0]):line[1] for line in barcode_file}
-#         ss_dict = defaultdict(list)
-#         for line in ss_file:
-#             barcode1, barcode2, samplename = line[0], line[1], line[2]
-#             if barcode1:
-#                 ss_dict[samplename].append(csv_dict[int(barcode1)])
-#             if barcode2:
-#                 ss_dict[samplename].append(csv_dict[int(barcode2)])
-#         filtered_barcodes = list(filter(lambda sample: not(sample[1]), ss_dict.items()))
-#         if filtered_barcodes:
-#             raise InputError('One of your samples in your sample_sheet.tab has no barcodes associated with itself.')
-#         return ss_dict
+
+def barcseek() -> None:
+    """Run BarcSeek"""
+    pass
 
 
 def main() -> None:
@@ -47,11 +45,60 @@ def main() -> None:
     parser = arguments.set_args() # type: argparse.ArgumentParser
     if not sys.argv[1:]:
         sys.exit(parser.print_help())
-    args = vars(parser.parse_args())
+    args = {key: value for key, value in vars(parser.parse_args()).items() if value is not None} # type: Dict[str, Any]
+    # #   Make an output directory
+    # if os.path.exists(args['outdirectory']):
+    #     args['outdirectory'] = args['outdirectory'] + time.strftime('_%Y-%m-%d_%H:%M')
+    # try:
+    #     os.makedirs(args['outdirectory'])
+    # except OSError:
+    #     pass
+    # finally:
+    #     #   Make a prefix for project-level output files
+    #     output_prefix = os.path.join(args['outdirectory'], args['project']) # type: str
+    output_prefix = os.path.join(os.getcwd(), 'BarcSeek') # type: str
+    #   Setup the logger
+    #   Formatting values
+    log_format = '%(asctime)s %(levelname)s:\t%(message)s' # type: str
+    date_format = '%Y-%m-%d %H:%M:%S' # type: str
+    #   Formatters
+    stripped_formatter = utilities.StrippedFormatter(fmt=log_format, datefmt=date_format) # utilities.StrippedFormatter
+    colored_formater = utilities.ColoredFormatter(fmt=log_format, datefmt=date_format) # type: utilities.ColoredFormatter
+    #   Open /dev/null (or whatever it is on Windows) to send basic stream information to
+    devnull = open(os.devnull, 'w')
+    #   Configure the logger
+    verbosity = _set_verbosity(level=args['verbosity']) # type: int
+    logging.basicConfig(
+        stream=devnull,
+        level=verbosity,
+    )
+    #   If we're being verbose, capture other warnings (mainly matplotlib and numpy)
+    #   Otherwise, ignore them
+    if verbosity == logging.DEBUG:
+        logging.captureWarnings(True)
+    else:
+        warnings.filterwarnings('ignore')
+    #   Setup a FileHandler for the log file
+    #   Use a StrippedFormatter to remove extra ANSI color codes
+    logname = output_prefix + '.log'
+    logfile = logging.FileHandler(filename=logname, mode='w') # type: Logging.FileHandler
+    logfile.setFormatter(stripped_formatter)
+    logging.getLogger().addHandler(logfile)
+    #   Setup the console handler
+    #   Use a ColoredFormatter because colors are cool
+    console = logging.StreamHandler() # type: logging.StreamHandler
+    console.setFormatter(colored_formater)
+    logging.getLogger().addHandler(console)
+    #   Read in the barcodes
     barcodes_dict = barcodes.read_barcodes(barcodes_file=args['barcodes']) # type: Dict[str, str]
     multiple_barcodes = barcodes.barcode_check(barcode_dict=barcodes_dict) # type: Dict[str, int]
     if multiple_barcodes:
-        raise ValueError("Cannot have ambiguous or duplicate barcodes")
+        raise ValueError(logging.error("Cannot have ambiguous or duplicate barcodes"))
+    devnull.close()
+    try:
+        logfile.close()
+    except NameError:
+        pass
     # from parallel import parallelize
     # if args['numlines'] %4 != 0:
     #     raise InputError('-l  must be divisible by four'+str(args['numlines']))
