@@ -7,8 +7,10 @@ if not (sys.version_info.major == 3 and sys.version_info.minor >= 5):
     sys.exit("Please use Python 3.5 or higher for this module: " + __name__)
 
 
+#   Load standard modules
 from typing import Optional, Tuple, Any
 
+#   Load installed modules
 try:
     from Bio.SeqIO import QualityIO
 except ImportError as error:
@@ -51,8 +53,7 @@ class Read(object):
             return hash(self) == hash(other)
         elif isinstance(other, str):
             return self._id == other or self._seq == other
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def _validate(self) -> None:
         if len(self._seq) != len(self._qual):
