@@ -49,6 +49,7 @@ PYTHON_REQUIRES = '>=3.5'
 
 #   Dependencies
 INSTALL_REQUIRES = [
+    'regex',
     'biopython'
 ]
 
@@ -65,14 +66,14 @@ ENTRY_POINTS = {
     ]
 }
 
-#   Commans available for setup.py
+#   Commands available for setup.py
 CMD_CLASS = {
     'install': install
 }
 
 #   Run setup
 setup(
-    name=NAME,
+    name=NAME.lower(),
     url=URL,
     platforms=PLATFORMS,
     python_requires=PYTHON_REQUIRES,
